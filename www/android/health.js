@@ -35,32 +35,29 @@ module.exports = {
     if (opts.endDate && (typeof opts.endDate == 'object'))
       opts.endDate = opts.endDate.getTime();
     exec((data) => {
-      // here we use a recursive function instead of a simple loop
-      // this is to deal with additional queries required for the special case
-      // of activity with calories and/or distance
-      finalizeResult = (i) => {
-        if (i >= data.length) {
-          // completed, return results
-          onSuccess(data);
-        } else {
-          // iterate
-          // convert timestamps to date
-          if (data[i].startDate) data[i].startDate = new Date(data[i].startDate)
-          if (data[i].endDate) data[i].endDate = new Date(data[i].endDate)
+      // deal with additional queries required for the special case
+      // of activity with calories, distance, or heart rate
 
-          if (opts.dataType == 'sleep' && opts.sleepSession) {
-            // convert start and end dates for single stages
-            for (let stageI = 0; stageI < data[i].value.length; stageI++) {
-              data[i].value[stageI].startDate = new Date(data[i].value[stageI].startDate)
-              data[i].value[stageI].endDate = new Date(data[i].value[stageI].endDate)
-            }
+      for (let i = 0; i < data.length; i++) {
+
+        // convert timestamps to date
+        if (data[i].startDate) data[i].startDate = new Date(data[i].startDate)
+        if (data[i].endDate) data[i].endDate = new Date(data[i].endDate)
+
+        if (opts.dataType == 'sleep' && opts.sleepSession) {
+          // convert start and end dates for single stages
+          for (let stageI = 0; stageI < data[i].value.length; stageI++) {
+            data[i].value[stageI].startDate = new Date(data[i].value[stageI].startDate)
+            data[i].value[stageI].endDate = new Date(data[i].value[stageI].endDate)
           }
+        }
 
-          if (opts.dataType == 'activity' && (opts.includeCalories || opts.includeDistance)) {
-            // we need to also fetch calories and/or distance
+        if (opts.dataType == 'activity') {
+          // we need to also fetch calories, distance, heart rate
 
-            // helper function to get aggregated calories for that activity
-            getCals = (onDone) => {
+          // helper function to get aggregated calories for that activity
+          getCals = (onDone) => {
+            if (opts.includeCalories) {
               this.queryAggregated({
                 startDate: data[i].startDate,
                 endDate: data[i].endDate,
@@ -69,9 +66,11 @@ module.exports = {
                 data[i].calories = cals.value
                 onDone()
               }, onError)
-            }
-            // helper function to get aggregated distance for that activity
-            getDist = (onDone) => {
+            } else onDone()
+          }
+          // helper function to get aggregated distance for that activity
+          getDist = (onDone) => {
+            if (opts.includeDistance) {
               this.queryAggregated({
                 startDate: data[i].startDate,
                 endDate: data[i].endDate,
@@ -80,33 +79,39 @@ module.exports = {
                 data[i].distance = dist.value
                 onDone()
               }, onError)
-            }
-
-            if (opts.includeCalories) {
-              // calories are needed, fetch them
-              getCals(() => {
-                // now get the distance, if needed
-                if (opts.includeDistance) {
-                  getDist(() => {
-                    finalizeResult(i + 1)
-                  })
-                } else {
-                  // no distance needed, move on
-                  finalizeResult(i + 1)
+            } else onDone()
+          }
+          // helper function to get heart rate values for that activity
+          getHeartRates = (onDone) => {
+            if (opts.includeHeartRate) {
+              this.query({
+                startDate: data[i].startDate,
+                endDate: data[i].endDate,
+                dataType: 'heart_rate'
+              }, (dist) => {
+                // TODO: probably needs some transformation
+                data[i].heartRate = dist.value
+                onDone()
+              }, onError)
+            } else onDone()
+          }
+          // chain the optional queries
+          getCals(() => {
+            getDist(() => {
+              getHeartRates(() => {
+                if (i == data.length) {
+                  console.log('finished', data)
+                  onSuccess(data)
                 }
               })
-            } else {
-              // distance only is needed
-              getDist(() => {
-                finalizeResult(i + 1)
-              })
-            }
-          } else {
-            finalizeResult(i + 1)
-          }
+            })
+          })
         }
       }
-      finalizeResult(0);
+      if (opts.dataType != 'activity') {
+        // completed, return results
+        onSuccess(data);
+      }
     }, onError, "health", "query", [opts])
   },
 
