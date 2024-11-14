@@ -2,7 +2,6 @@ package org.apache.cordova.health;
 
 import androidx.health.connect.client.aggregate.AggregateMetric;
 import androidx.health.connect.client.aggregate.AggregationResult;
-import androidx.health.connect.client.records.NutritionRecord;
 import androidx.health.connect.client.records.metadata.DataOrigin;
 import androidx.health.connect.client.records.metadata.Metadata;
 import androidx.health.connect.client.records.HydrationRecord;
@@ -34,6 +33,10 @@ public class NutritionFunctions {
 
     public static KClass<? extends Record> dataTypeToClass() {
         return kotlin.jvm.JvmClassMappingKt.getKotlinClass(NutritionRecord.class);
+    }
+
+    public static KClass<? extends Record> hydrationDataTypeToClass() {
+        return kotlin.jvm.JvmClassMappingKt.getKotlinClass(HydrationRecord.class);
     }
 
     public static void populateFromQuery(Record datapoint, JSONObject obj) throws JSONException {
@@ -101,6 +104,11 @@ public class NutritionFunctions {
         if (response.get(NutritionRecord.TOTAL_CARBOHYDRATE_TOTAL) != null) {
             double totalCarbs = response.get(NutritionRecord.TOTAL_CARBOHYDRATE_TOTAL).getGrams();
             nutritionStats.put("carbs.total", totalCarbs);
+        }
+
+        if (response.get(NutritionRecord.SUGAR_TOTAL) != null) {
+            double totalCarbs = response.get(NutritionRecord.SUGAR_TOTAL).getGrams();
+            nutritionStats.put("sugar.total", totalCarbs);
         }
 
         retObj.put("value", nutritionStats);
