@@ -2,6 +2,7 @@ package org.apache.cordova.health;
 
 import androidx.health.connect.client.aggregate.AggregateMetric;
 import androidx.health.connect.client.aggregate.AggregationResult;
+import androidx.health.connect.client.records.NutritionRecord;
 import androidx.health.connect.client.records.metadata.DataOrigin;
 import androidx.health.connect.client.records.metadata.Metadata;
 import androidx.health.connect.client.records.Record;
@@ -29,10 +30,6 @@ public class NutritionFunctions {
 
     public static KClass<? extends Record> dataTypeToClass() {
         return kotlin.jvm.JvmClassMappingKt.getKotlinClass(NutritionRecord.class);
-    }
-
-    public static KClass<? extends Record> hydrationDataTypeToClass() {
-        return kotlin.jvm.JvmClassMappingKt.getKotlinClass(HydrationRecord.class);
     }
 
     public static void populateFromQuery(Record datapoint, JSONObject obj) throws JSONException {
