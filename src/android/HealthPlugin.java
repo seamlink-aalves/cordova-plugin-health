@@ -1100,7 +1100,7 @@ public class HealthPlugin extends CordovaPlugin {
             } else if (datatype.equalsIgnoreCase("nutrition")) {
                 NutritionFunctions.prepareStoreRecords(args.getJSONObject(0), st, et, data);
             } else if (datatype.equalsIgnoreCase("nutrition.water")) {
-                NutritionFunctions.prepareStoreRecords(args.getJSONObject(0), st, et, data);
+                HydrationFunctions.prepareStoreRecords(args.getJSONObject(0), data);
             } else if (datatype.toLowerCase().startsWith("nutrition.")) {
                 NutritionXFunctions.prepareStoreRecords(datatype, args.getJSONObject(0), st, et, data);
             } else {
