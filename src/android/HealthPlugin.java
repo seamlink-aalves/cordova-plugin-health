@@ -6,6 +6,7 @@ package org.apache.cordova.health;
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.util.Log;
 
 import androidx.activity.result.ActivityResultCallback;
@@ -32,7 +33,6 @@ import androidx.health.connect.client.records.HeartRateRecord;
 import androidx.health.connect.client.records.HeartRateVariabilityRmssdRecord;
 import androidx.health.connect.client.records.HeightRecord;
 import androidx.health.connect.client.records.HydrationRecord;
-import androidx.health.connect.client.records.NutritionRecord;
 import androidx.health.connect.client.records.Record;
 import androidx.health.connect.client.records.RestingHeartRateRecord;
 import androidx.health.connect.client.records.SleepSessionRecord;
@@ -71,18 +71,15 @@ import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.ZoneOffset;
 import java.time.temporal.TemporalAdjusters;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 import kotlin.coroutines.EmptyCoroutineContext;
 import kotlin.reflect.KClass;
 import kotlinx.coroutines.BuildersKt;
-
 
 public class HealthPlugin extends CordovaPlugin {
 
@@ -92,7 +89,8 @@ public class HealthPlugin extends CordovaPlugin {
     public static String TAG = "cordova-plugin-health";
 
     /**
-     * Callback context, reference needed when used in functions initialized before the plugin is called
+     * Callback context, reference needed when used in functions initialized before
+     * the plugin is called
      */
     private CallbackContext callbackContext;
 
@@ -116,34 +114,36 @@ public class HealthPlugin extends CordovaPlugin {
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
         super.initialize(cordova, webView);
 
-        ActivityResultContract<Set<String>, Set<String>> requestPermissionActivityContract = PermissionController.createRequestPermissionResultContract();
-        permissionsLauncher = cordova.getActivity().registerForActivityResult(requestPermissionActivityContract, new ActivityResultCallback<Set<String>>() {
-            @Override
-            public void onActivityResult(Set<String> result) {
-                Log.d(TAG, "got results from authorization request");
-                if (callbackContext != null) {
-                    for (String res : result) {
-                        LOG.d(TAG, res);
+        ActivityResultContract<Set<String>, Set<String>> requestPermissionActivityContract = PermissionController
+                .createRequestPermissionResultContract();
+        permissionsLauncher = cordova.getActivity().registerForActivityResult(requestPermissionActivityContract,
+                new ActivityResultCallback<Set<String>>() {
+                    @Override
+                    public void onActivityResult(Set<String> result) {
+                        Log.d(TAG, "got results from authorization request");
+                        if (callbackContext != null) {
+                            for (String res : result) {
+                                LOG.d(TAG, res);
+                            }
+                            if (result.isEmpty()) {
+                                callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, false));
+                            } else {
+                                callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, true));
+                            }
+                        } else {
+                            LOG.e(TAG, "Got activity results before callback was created");
+                        }
                     }
-                    if (result.isEmpty()) {
-                        callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, false));
-                    } else {
-                        callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, true));
-                    }
-                } else {
-                    LOG.e(TAG, "Got activity results before callback was created");
-                }
-            }
-        });
+                });
     }
-
 
     /**
      * Executes the request.
      *
      * @param action          the action to execute.
      * @param args            the exec() arguments.
-     * @param callbackContext the callback context used when calling back into JavaScript.
+     * @param callbackContext the callback context used when calling back into
+     *                        JavaScript.
      * @return whether the action was valid.
      */
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) {
@@ -161,8 +161,7 @@ public class HealthPlugin extends CordovaPlugin {
 
             callbackContext.success();
         } else if (action.equals("getHealthConnectFromStore")) {
-            String uriString =
-                    "market://details?id=$providerPackageName&url=healthconnect%3A%2F%2Fonboarding";
+            String uriString = "market://details?id=com.google.android.apps.healthdata";
             Intent launchAppStore = new Intent(Intent.ACTION_VIEW);
             launchAppStore.setPackage("com.android.vending");
             launchAppStore.setData(Uri.parse(uriString));
@@ -179,11 +178,16 @@ public class HealthPlugin extends CordovaPlugin {
         } else if (action.equals("openHealthSettings")) {
             Activity currentActivity = this.cordova.getActivity();
             try {
-                Intent activityIntent =  new Intent("androidx.health.ACTION_HEALTH_CONNECT_SETTINGS");
-                currentActivity.startActivity(activityIntent);
-                callbackContext.success();
-            }
-            catch (Exception ex) {
+                if (Build.VERSION.SDK_INT < 34) {
+                    Intent activityIntent = new Intent("androidx.health.ACTION_HEALTH_CONNECT_SETTINGS");
+                    currentActivity.startActivity(activityIntent);
+                    callbackContext.success();
+                } else {
+                    Intent activityIntent = new Intent(HealthConnectClient.getHealthConnectSettingsAction());
+                    currentActivity.startActivity(activityIntent);
+                    callbackContext.success();
+                }
+            } catch (Exception ex) {
                 callbackContext.error(ex.getMessage());
             }
         } else if ("isAuthorized".equals(action)) {
@@ -262,7 +266,6 @@ public class HealthPlugin extends CordovaPlugin {
         }
     }
 
-
     // DATA_TYPE add here when supporting new ones
     private KClass<? extends androidx.health.connect.client.records.Record> dataTypeNameToClass(String name) {
         if (name.equalsIgnoreCase("steps")) {
@@ -289,7 +292,7 @@ public class HealthPlugin extends CordovaPlugin {
         if (name.equalsIgnoreCase("blood_glucose")) {
             return BloodGlucoseFunctions.dataTypeToClass();
         }
-		if (name.equalsIgnoreCase("blood_pressure")) {
+        if (name.equalsIgnoreCase("blood_pressure")) {
             return BloodPressureFunctions.dataTypeToClass();
         }
         if (name.equalsIgnoreCase("distance")) {
@@ -308,7 +311,10 @@ public class HealthPlugin extends CordovaPlugin {
             return NutritionFunctions.dataTypeToClass();
         }
         if (name.equalsIgnoreCase("nutrition.water")) {
-            return NutritionFunctions.hydrationDataTypeToClass();
+            return HydrationFunctions.dataTypeToClass();
+        }
+        if (name.toLowerCase().startsWith("nutrition.")) {
+            return NutritionXFunctions.dataTypeToClass();
         }
         if (name.equalsIgnoreCase("sleep")) {
             return SleepFunctions.dataTypeToClass();
@@ -321,7 +327,8 @@ public class HealthPlugin extends CordovaPlugin {
     }
 
     /**
-     * Checks if permissions have been granted, if request is true, permissions are also requested
+     * Checks if permissions have been granted, if request is true, permissions are
+     * also requested
      *
      * @param args    json array coming from the plugin
      * @param request if true also requests permissions
@@ -334,8 +341,7 @@ public class HealthPlugin extends CordovaPlugin {
             // see https://kt.academy/article/cc-other-languages
             Set<String> grantedPermissions = BuildersKt.runBlocking(
                     EmptyCoroutineContext.INSTANCE,
-                    (s, c) -> healthConnectClient.getPermissionController().getGrantedPermissions(c)
-            );
+                    (s, c) -> healthConnectClient.getPermissionController().getGrantedPermissions(c));
 
             Set<String> permissionsToRequest = new HashSet<>();
 
@@ -393,7 +399,6 @@ public class HealthPlugin extends CordovaPlugin {
         }
     }
 
-
     protected static void populateFromMeta(JSONObject obj, Metadata meta) throws JSONException {
         String id = meta.getId();
         if (id != null) {
@@ -402,7 +407,6 @@ public class HealthPlugin extends CordovaPlugin {
 
         Device dev = meta.getDevice();
         if (dev != null) {
-            String device = "";
             String manufacturer = dev.getManufacturer();
             String model = dev.getModel();
             if (manufacturer != null || model != null) {
@@ -475,19 +479,18 @@ public class HealthPlugin extends CordovaPlugin {
                 return;
             }
 
-
             TimeRangeFilter timeRange = TimeRangeFilter.between(Instant.ofEpochMilli(st), Instant.ofEpochMilli(et));
             HashSet<DataOrigin> dor = new HashSet<>();
             ReadRecordsRequest request = new ReadRecordsRequest(dt, timeRange, dor, ascending, limit, null);
             // see https://kt.academy/article/cc-other-languages
             ReadRecordsResponse response = BuildersKt.runBlocking(
                     EmptyCoroutineContext.INSTANCE,
-                    (s, c) -> healthConnectClient.readRecords(request, c)
-            );
+                    (s, c) -> healthConnectClient.readRecords(request, c));
 
             Log.d(TAG, "Data query successful");
             JSONArray resultset = new JSONArray();
-            // default behaviour is that each record corresponds to one element in the array, but there can be exceptions
+            // default behaviour is that each record corresponds to one element in the
+            // array, but there can be exceptions
             boolean oneElementPerRecord = true;
 
             for (Object datapointObj : response.getRecords()) {
@@ -546,28 +549,29 @@ public class HealthPlugin extends CordovaPlugin {
                         obj.put("endDate", basalRateDP.getTime().toEpochMilli());
 
                         Power pow = basalRateDP.getBasalMetabolicRate();
-                        if (pow != null) {
-                            obj.put("value", pow.getKilocaloriesPerDay());
-                            obj.put("unit", "kcal/day");
-                        }
+                        obj.put("value", pow.getKilocaloriesPerDay());
+                        obj.put("unit", "kcal/day");
                     } else if (datapoint instanceof BloodGlucoseRecord) {
                         BloodGlucoseFunctions.populateFromQuery(datapoint, obj);
                     } else if (datapoint instanceof BloodPressureRecord) {
                         BloodPressureFunctions.populateFromQuery(datapoint, obj);
-					} else if (datapoint instanceof DistanceRecord) {
+                    } else if (datapoint instanceof DistanceRecord) {
                         DistanceRecord disanceR = (DistanceRecord) datapoint;
                         obj.put("startDate", disanceR.getStartTime().toEpochMilli());
                         obj.put("endDate", disanceR.getEndTime().toEpochMilli());
 
                         double meters = disanceR.getDistance().getMeters();
-
                         obj.put("value", meters);
                         obj.put("unit", "m");
-                    } else if (datapoint instanceof NutritionRecord) {
-                        NutritionFunctions.populateFromQuery(datapoint, obj);
                     } else if (datapoint instanceof HydrationRecord) {
-                        NutritionFunctions.populateHydrationFromQuery(datapoint, obj);
-                    }  else if (datapoint instanceof SleepSessionRecord) {
+                        HydrationFunctions.populateFromQuery(datapoint, obj);
+                    } else if (datapoint instanceof NutritionRecord) {
+                        if (datatype.toLowerCase().startsWith("nutrition.")) {
+                            NutritionXFunctions.populateFromQuery(datatype, datapoint, obj);
+                        } else {
+                            NutritionFunctions.populateFromQuery(datapoint, obj);
+                        }
+                    } else if (datapoint instanceof SleepSessionRecord) {
                         oneElementPerRecord = keepSession; // flag it, so we don't add empty objs later
                         SleepFunctions.populateFromQuery(datapoint, obj, resultset, keepSession);
                     } else if (datapoint instanceof HeartRateRecord) {
@@ -583,7 +587,7 @@ public class HealthPlugin extends CordovaPlugin {
                     }
 
                     // add to result array
-                    if (oneElementPerRecord){
+                    if (oneElementPerRecord) {
                         resultset.put(obj);
                     }
                 } else {
@@ -639,15 +643,21 @@ public class HealthPlugin extends CordovaPlugin {
                 LocalDateTime stLDT;
                 LocalDateTime etLDT = LocalDateTime.from(etZDT);
                 if (bucketType.equalsIgnoreCase("hour")) {
-                    stLDT = LocalDateTime.of(stZDT.getYear(), stZDT.getMonth(), stZDT.getDayOfMonth(), stZDT.getHour(), 0, 0, 0);
-                    // etLDT = LocalDateTime.of(etZDT.getYear(), etZDT.getMonth(), etZDT.getDayOfMonth(), etZDT.getHour(), 0, 0, 0);
+                    stLDT = LocalDateTime.of(stZDT.getYear(), stZDT.getMonth(), stZDT.getDayOfMonth(), stZDT.getHour(),
+                            0, 0, 0);
+                    // etLDT = LocalDateTime.of(etZDT.getYear(), etZDT.getMonth(),
+                    // etZDT.getDayOfMonth(), etZDT.getHour(), 0, 0, 0);
                 } else if (bucketType.equalsIgnoreCase("day")) {
                     stLDT = LocalDateTime.of(stZDT.getYear(), stZDT.getMonth(), stZDT.getDayOfMonth(), 0, 0, 0, 0);
-                    // etLDT = LocalDateTime.of(etZDT.getYear(), etZDT.getMonth(), etZDT.getDayOfMonth(), 0, 0, 0, 0);
+                    // etLDT = LocalDateTime.of(etZDT.getYear(), etZDT.getMonth(),
+                    // etZDT.getDayOfMonth(), 0, 0, 0, 0);
                 } else if (bucketType.equalsIgnoreCase("week")) {
                     DayOfWeek weekStart = DayOfWeek.MONDAY;
-                    stLDT = LocalDateTime.of(stZDT.getYear(), stZDT.getMonth(), stZDT.getDayOfMonth(), 0, 0, 0, 0).with(TemporalAdjusters.previousOrSame(weekStart));
-                    // etLDT = LocalDateTime.of(etZDT.getYear(), etZDT.getMonth(), etZDT.getDayOfMonth(), 0, 0, 0, 0).with(TemporalAdjusters.previousOrSame(weekStart));
+                    stLDT = LocalDateTime.of(stZDT.getYear(), stZDT.getMonth(), stZDT.getDayOfMonth(), 0, 0, 0, 0)
+                            .with(TemporalAdjusters.previousOrSame(weekStart));
+                    // etLDT = LocalDateTime.of(etZDT.getYear(), etZDT.getMonth(),
+                    // etZDT.getDayOfMonth(), 0, 0, 0,
+                    // 0).with(TemporalAdjusters.previousOrSame(weekStart));
                 } else if (bucketType.equalsIgnoreCase("month")) {
                     stLDT = LocalDateTime.of(stZDT.getYear(), stZDT.getMonth(), 1, 0, 0, 0, 0);
                     // etLDT = LocalDateTime.of(etZDT.getYear(), etZDT.getMonth(), 1, 0, 0, 0, 0);
@@ -684,8 +694,11 @@ public class HealthPlugin extends CordovaPlugin {
                     } else if (datatype.equalsIgnoreCase("nutrition")) {
                         request = NutritionFunctions.prepareAggregateGroupByPeriodRequest(timeRange, period, dor);
                     } else if (datatype.equalsIgnoreCase("nutrition.water")) {
-                        request = NutritionFunctions.prepareHydrationAggregateGroupByPeriodRequest(timeRange, period, dor);
-                    }  else if (datatype.equalsIgnoreCase("weight")) {
+                        request = HydrationFunctions.prepareAggregateGroupByPeriodRequest(timeRange, period, dor);
+                    } else if (datatype.toLowerCase().startsWith("nutrition.")) {
+                        request = NutritionXFunctions.prepareAggregateGroupByPeriodRequest(datatype, timeRange, period,
+                                dor);
+                    } else if (datatype.equalsIgnoreCase("weight")) {
                         request = WeightFunctions.prepareAggregateGroupByPeriodRequest(timeRange, period, dor);
                     } else if (datatype.equalsIgnoreCase("height")) {
                         request = HeightFunctions.prepareAggregateGroupByPeriodRequest(timeRange, period, dor);
@@ -714,7 +727,10 @@ public class HealthPlugin extends CordovaPlugin {
                     } else if (datatype.equalsIgnoreCase("heart_rate")) {
                         request = HeartRateFunctions.prepareAggregateGroupByPeriodRequest(timeRange, period, dor);
                     } else if (datatype.equalsIgnoreCase("heart_rate.resting")) {
-                        request = HeartRateFunctions.prepareRestingAggregateGroupByPeriodRequest(timeRange, period, dor);
+                        request = HeartRateFunctions.prepareRestingAggregateGroupByPeriodRequest(timeRange, period,
+                                dor);
+                    } else if (datatype.equalsIgnoreCase("blood_pressure")) {
+                        request = BloodPressureFunctions.prepareAggregateGroupByPeriodRequest(timeRange, period, dor);
                     } else {
                         callbackContext.error("Datatype not recognized " + datatype);
                         return;
@@ -722,8 +738,7 @@ public class HealthPlugin extends CordovaPlugin {
 
                     List<AggregationResultGroupedByPeriod> response = BuildersKt.runBlocking(
                             EmptyCoroutineContext.INSTANCE,
-                            (s, c) -> healthConnectClient.aggregateGroupByPeriod(request, c)
-                    );
+                            (s, c) -> healthConnectClient.aggregateGroupByPeriod(request, c));
 
                     Log.d(TAG, "Got data from query aggregated");
                     JSONArray retBucketsArr = new JSONArray();
@@ -748,7 +763,10 @@ public class HealthPlugin extends CordovaPlugin {
                     } else if (datatype.equalsIgnoreCase("nutrition")) {
                         request = NutritionFunctions.prepareAggregateGroupByDurationRequest(timeRange, duration, dor);
                     } else if (datatype.equalsIgnoreCase("nutrition.water")) {
-                        request = NutritionFunctions.prepareHydrationAggregateGroupByDurationRequest(timeRange, duration, dor);
+                        request = HydrationFunctions.prepareAggregateGroupByDurationRequest(timeRange, duration, dor);
+                    } else if (datatype.toLowerCase().startsWith("nutrition.")) {
+                        request = NutritionXFunctions.prepareAggregateGroupByDurationRequest(datatype, timeRange,
+                                duration, dor);
                     } else if (datatype.equalsIgnoreCase("weight")) {
                         request = WeightFunctions.prepareAggregateGroupByDurationRequest(timeRange, duration, dor);
                     } else if (datatype.equalsIgnoreCase("height")) {
@@ -778,7 +796,11 @@ public class HealthPlugin extends CordovaPlugin {
                     } else if (datatype.equalsIgnoreCase("heart_rate")) {
                         request = HeartRateFunctions.prepareAggregateGroupByDurationRequest(timeRange, duration, dor);
                     } else if (datatype.equalsIgnoreCase("heart_rate.resting")) {
-                        request = HeartRateFunctions.prepareRestingAggregateGroupByDurationRequest(timeRange, duration, dor);
+                        request = HeartRateFunctions.prepareRestingAggregateGroupByDurationRequest(timeRange, duration,
+                                dor);
+                    } else if (datatype.equalsIgnoreCase("blood_pressure")) {
+                        request = BloodPressureFunctions.prepareAggregateGroupByDurationRequest(timeRange, duration,
+                                dor);
                     } else {
                         callbackContext.error("Datatype not recognized " + datatype);
                         return;
@@ -786,8 +808,7 @@ public class HealthPlugin extends CordovaPlugin {
 
                     List<AggregationResultGroupedByDuration> response = BuildersKt.runBlocking(
                             EmptyCoroutineContext.INSTANCE,
-                            (s, c) -> healthConnectClient.aggregateGroupByDuration(request, c)
-                    );
+                            (s, c) -> healthConnectClient.aggregateGroupByDuration(request, c));
 
                     Log.d(TAG, "Got data from query aggregated");
                     JSONArray retBucketsArr = new JSONArray();
@@ -815,8 +836,10 @@ public class HealthPlugin extends CordovaPlugin {
                 } else if (datatype.equalsIgnoreCase("nutrition")) {
                     request = NutritionFunctions.prepareAggregateRequest(timeRange, dor);
                 } else if (datatype.equalsIgnoreCase("nutrition.water")) {
-                    request = NutritionFunctions.prepareHydrationAggregateRequest(timeRange, dor);
-                }  else if (datatype.equalsIgnoreCase("weight")) {
+                    request = HydrationFunctions.prepareAggregateRequest(timeRange, dor);
+                } else if (datatype.toLowerCase().startsWith("nutrition.")) {
+                    request = NutritionXFunctions.prepareAggregateRequest(datatype, timeRange, dor);
+                } else if (datatype.equalsIgnoreCase("weight")) {
                     request = WeightFunctions.prepareAggregateRequest(timeRange, dor);
                 } else if (datatype.equalsIgnoreCase("height")) {
                     request = HeightFunctions.prepareAggregateRequest(timeRange, dor);
@@ -846,16 +869,16 @@ public class HealthPlugin extends CordovaPlugin {
                     request = HeartRateFunctions.prepareAggregateRequest(timeRange, dor);
                 } else if (datatype.equalsIgnoreCase("heart_rate.resting")) {
                     request = HeartRateFunctions.prepareRestingAggregateRequest(timeRange, dor);
+                } else if (datatype.equalsIgnoreCase("blood_pressure")) {
+                    request = BloodPressureFunctions.prepareAggregateRequest(timeRange, dor);
                 } else {
                     callbackContext.error("Datatype not recognized " + datatype);
                     return;
                 }
 
-
                 AggregationResult response = BuildersKt.runBlocking(
                         EmptyCoroutineContext.INSTANCE,
-                        (s, c) -> healthConnectClient.aggregate(request, c)
-                );
+                        (s, c) -> healthConnectClient.aggregate(request, c));
                 Log.d(TAG, "Got data from query aggregated");
 
                 JSONObject retObject = new JSONObject();
@@ -881,7 +904,9 @@ public class HealthPlugin extends CordovaPlugin {
         } else if (datatype.equalsIgnoreCase("nutrition")) {
             NutritionFunctions.populateFromAggregatedQuery(response, retObj);
         } else if (datatype.equalsIgnoreCase("nutrition.water")) {
-            NutritionFunctions.populateHydrationFromAggregatedQuery(response, retObj);
+            HydrationFunctions.populateFromAggregatedQuery(response, retObj);
+        } else if (datatype.toLowerCase().startsWith("nutrition.")) {
+            NutritionXFunctions.populateFromAggregatedQuery(response, retObj);
         } else if (datatype.equalsIgnoreCase("weight")) {
             WeightFunctions.populateFromAggregatedQuery(response, retObj);
         } else if (datatype.equalsIgnoreCase("height")) {
@@ -938,6 +963,8 @@ public class HealthPlugin extends CordovaPlugin {
             HeartRateFunctions.populateFromAggregatedQuery(response, retObj);
         } else if (datatype.equalsIgnoreCase("heart_rate.resting")) {
             HeartRateFunctions.populateRestingFromAggregatedQuery(response, retObj);
+        } else if (datatype.equalsIgnoreCase("blood_pressure")) {
+            BloodPressureFunctions.populateFromAggregatedQuery(response, retObj);
         } else {
             LOG.e(TAG, "Data type not recognized " + datatype);
         }
@@ -982,7 +1009,8 @@ public class HealthPlugin extends CordovaPlugin {
             List<Record> data = new LinkedList<>();
 
             // DATA_TYPE here we need to add support for each different data type
-            // TODO: we could add meta data when storing, including entry method, client ID and device
+            // TODO: we could add meta data when storing, including entry method, client ID
+            // and device
 
             if (datatype.equalsIgnoreCase("steps")) {
                 StepsFunctions.prepareStoreRecords(args.getJSONObject(0), st, et, data);
@@ -996,8 +1024,7 @@ public class HealthPlugin extends CordovaPlugin {
                 BodyFatRecord record = new BodyFatRecord(
                         Instant.ofEpochMilli(st), null,
                         new Percentage(perc),
-                        Metadata.EMPTY
-                );
+                        Metadata.EMPTY);
                 data.add(record);
             } else if (datatype.equalsIgnoreCase("activity")) {
                 String activityStr = args.getJSONObject(0).getString("value");
@@ -1013,18 +1040,16 @@ public class HealthPlugin extends CordovaPlugin {
                         exerciseType,
                         title, notes,
                         Metadata.EMPTY,
-                        segments, laps
-                );
+                        segments, laps);
                 data.add(record);
             } else if (datatype.equalsIgnoreCase("calories")) {
                 double kcals = args.getJSONObject(0).getDouble("value");
 
                 TotalCaloriesBurnedRecord record = new TotalCaloriesBurnedRecord(
-                    Instant.ofEpochMilli(st), null,
-                    Instant.ofEpochMilli(et), null,
-                    Energy.kilocalories(kcals),
-                    Metadata.EMPTY
-                );
+                        Instant.ofEpochMilli(st), null,
+                        Instant.ofEpochMilli(et), null,
+                        Energy.kilocalories(kcals),
+                        Metadata.EMPTY);
                 data.add(record);
             } else if (datatype.equalsIgnoreCase("calories.active")) {
                 double kcals = args.getJSONObject(0).getDouble("value");
@@ -1033,8 +1058,7 @@ public class HealthPlugin extends CordovaPlugin {
                         Instant.ofEpochMilli(st), null,
                         Instant.ofEpochMilli(et), null,
                         Energy.kilocalories(kcals),
-                        Metadata.EMPTY
-                );
+                        Metadata.EMPTY);
                 data.add(record);
             } else if (datatype.equalsIgnoreCase("calories.basal")) {
                 double kcals = args.getJSONObject(0).getDouble("value");
@@ -1046,8 +1070,7 @@ public class HealthPlugin extends CordovaPlugin {
                 BasalMetabolicRateRecord record = new BasalMetabolicRateRecord(
                         Instant.ofEpochMilli(st), null,
                         pow,
-                        Metadata.EMPTY
-                );
+                        Metadata.EMPTY);
                 data.add(record);
             } else if (datatype.equalsIgnoreCase("blood_glucose")) {
                 JSONObject glucoseobj = args.getJSONObject(0).getJSONObject("value");
@@ -1077,7 +1100,9 @@ public class HealthPlugin extends CordovaPlugin {
             } else if (datatype.equalsIgnoreCase("nutrition")) {
                 NutritionFunctions.prepareStoreRecords(args.getJSONObject(0), st, et, data);
             } else if (datatype.equalsIgnoreCase("nutrition.water")) {
-                NutritionFunctions.prepareHydrationStoreRecords(args.getJSONObject(0), data);
+                NutritionFunctions.prepareStoreRecords(args.getJSONObject(0), st, et, data);
+            } else if (datatype.toLowerCase().startsWith("nutrition.")) {
+                NutritionXFunctions.prepareStoreRecords(datatype, args.getJSONObject(0), st, et, data);
             } else {
                 callbackContext.error("Datatype not supported " + datatype);
                 return;
@@ -1085,9 +1110,7 @@ public class HealthPlugin extends CordovaPlugin {
 
             response = BuildersKt.runBlocking(
                     EmptyCoroutineContext.INSTANCE,
-                    (s, c) -> healthConnectClient.insertRecords(data, c)
-            );
-
+                    (s, c) -> healthConnectClient.insertRecords(data, c));
 
             Log.d(TAG, "Data written of type " + datatype);
 
@@ -1123,8 +1146,7 @@ public class HealthPlugin extends CordovaPlugin {
                 recordids.add(id);
                 BuildersKt.runBlocking(
                         EmptyCoroutineContext.INSTANCE,
-                        (s, c) -> healthConnectClient.deleteRecords(dt, recordids, new LinkedList<>(), c)
-                );
+                        (s, c) -> healthConnectClient.deleteRecords(dt, recordids, new LinkedList<>(), c));
                 Log.d(TAG, "Data deleted by ID of type " + datatype);
 
                 callbackContext.success();
@@ -1144,8 +1166,7 @@ public class HealthPlugin extends CordovaPlugin {
                 TimeRangeFilter timeRange = TimeRangeFilter.between(Instant.ofEpochMilli(st), Instant.ofEpochMilli(et));
                 BuildersKt.runBlocking(
                         EmptyCoroutineContext.INSTANCE,
-                        (s, c) -> healthConnectClient.deleteRecords(dt, timeRange, c)
-                );
+                        (s, c) -> healthConnectClient.deleteRecords(dt, timeRange, c));
                 Log.d(TAG, "Data deleted by time range of type " + datatype);
 
                 callbackContext.success();
