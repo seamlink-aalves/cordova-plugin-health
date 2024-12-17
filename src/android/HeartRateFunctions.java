@@ -146,31 +146,46 @@ public class HeartRateFunctions {
     }
 
     public static void populateRestingFromAggregatedQuery(AggregationResult response, JSONObject retObj) throws JSONException {
-        Long val = response.get(RestingHeartRateRecord.BPM_AVG);
-        if (val != null) {
-            retObj.put("value", val);
-            retObj.put("unit", "bpm");
-        } else {
-            retObj.put("value", 0);
-            retObj.put("unit", "bpm");
+        JSONObject hrStats = new JSONObject();
+
+        if (response.get(RestingHeartRateRecord.BPM_AVG) != null) {
+            long avg = response.get(RestingHeartRateRecord.BPM_AVG);
+            hrStats.put("average", avg);
         }
+        if (response.get(RestingHeartRateRecord.BPM_MIN) !=null) {
+            long min = response.get(RestingHeartRateRecord.BPM_MIN);
+            hrStats.put("min", min);
+        }
+        if (response.get(RestingHeartRateRecord.BPM_MAX) !=null) {
+            long max = response.get(RestingHeartRateRecord.BPM_MAX);
+            hrStats.put("max", max);
+        }
+            
+        retObj.put("value", hrStats);
+        retObj.put("unit", "bpm");
     }
 
     public static AggregateGroupByPeriodRequest prepareRestingAggregateGroupByPeriodRequest(TimeRangeFilter timeRange, Period period, HashSet<DataOrigin> dor) {
         Set<AggregateMetric<Long>> metrics = new HashSet<>();
         metrics.add(RestingHeartRateRecord.BPM_AVG);
+        metrics.add(RestingHeartRateRecord.BPM_MIN);
+        metrics.add(RestingHeartRateRecord.BPM_MAX);
         return new AggregateGroupByPeriodRequest(metrics, timeRange, period, dor);
     }
 
     public static AggregateGroupByDurationRequest prepareRestingAggregateGroupByDurationRequest(TimeRangeFilter timeRange, Duration duration, HashSet<DataOrigin> dor) {
         Set<AggregateMetric<Long>> metrics = new HashSet<>();
         metrics.add(RestingHeartRateRecord.BPM_AVG);
+        metrics.add(RestingHeartRateRecord.BPM_MIN);
+        metrics.add(RestingHeartRateRecord.BPM_MAX);
         return new AggregateGroupByDurationRequest(metrics, timeRange, duration, dor);
     }
 
     public static AggregateRequest prepareRestingAggregateRequest(TimeRangeFilter timeRange, HashSet<DataOrigin> dor) {
         Set<AggregateMetric<Long>> metrics = new HashSet<>();
         metrics.add(RestingHeartRateRecord.BPM_AVG);
+        metrics.add(RestingHeartRateRecord.BPM_MIN);
+        metrics.add(RestingHeartRateRecord.BPM_MAX);
         return new AggregateRequest(metrics, timeRange, dor);
     }
 
