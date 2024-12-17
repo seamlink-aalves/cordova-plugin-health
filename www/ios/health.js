@@ -400,7 +400,8 @@ Health.prototype.queryAggregated = function (opts, onSuccess, onError) {
   if ((opts.dataType !== 'steps') && (opts.dataType !== 'distance') &&
     (opts.dataType !== 'calories') && (opts.dataType !== 'calories.active') &&
     (opts.dataType !== 'calories.basal') && (opts.dataType !== 'activity') &&
-    (opts.dataType !== 'heart_rate') &&
+    (opts.dataType !== 'heart_rate') && (opts.dataType !== 'heart_rate.resting') &&
+    (opts.dataType !== 'heart_rate.variability') && (opts.dataType !== 'weight') &&
     (!opts.dataType.startsWith('nutrition')) && (opts.dataType !== 'appleExerciseTime')) {
     // unsupported datatype
     onError('Datatype ' + opts.dataType + ' not supported in queryAggregated');

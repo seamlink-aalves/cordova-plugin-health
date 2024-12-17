@@ -1583,9 +1583,11 @@ static NSString *const HKPluginKeyUUID = @"UUID";
     if (quantityType == nil) {
         [HealthKit triggerErrorCallbackWithMessage:@"sampleType is invalid" command:command delegate:self.commandDelegate];
         return;
-    } else if ([sampleTypeString isEqualToString:@"HKQuantityTypeIdentifierHeartRate"]) {
+    } else if ([sampleTypeString isEqualToString:@"HKQuantityTypeIdentifierHeartRate"] ||
+               [sampleTypeString isEqualToString:@"HKQuantityTypeIdentifierHeartRateVariabilitySDNN"] ||
+               [sampleTypeString isEqualToString:@"HKQuantityTypeIdentifierRestingHeartRate"] ||
+               [sampleTypeString isEqualToString:@"HKQuantityTypeIdentifierBodyMass"]) {
         statOpt = HKStatisticsOptionDiscreteAverage | HKStatisticsOptionDiscreteMin | HKStatisticsOptionDiscreteMax;
-
     } else { //HKQuantityTypeIdentifierStepCount, etc...
         statOpt = HKStatisticsOptionCumulativeSum;
     }

@@ -155,6 +155,8 @@ These are currently supported in both Android and iOS. Please notice that older 
 | calories.basal  | kcal  | HKQuantityTypeIdentifierBasalEnergyBurned     | BasalMetabolicRateRecord * time window   |
 | calories        | kcal  | HKQuantityTypeIdentifierActiveEnergyBurned + HKQuantityTypeIdentifierBasalEnergyBurned | TotalCaloriesBurnedRecord |
 | heart_rate      | bpm   | HKQuantityTypeIdentifierHeartRate             | HeartRateRecord                          |
+| heart_rate.resting | bpm | HKQuantityTypeIdentifierRestingHeartRate     | HeartRateRecord                          |
+| heart_rate.variability | bpm | HKQuantityTypeIdentifierHeartRateVariabilitySDNN | HeartRateRecord                   |
 | workout_route   | bpm   | HKWorkoutRouteType                            | NA                                       |
 | blood_glucose   | mmol/L | HKQuantityTypeIdentifierBloodGlucose         | BloodGlucoseRecord                       |
 | blood_pressure  | mmHg  | HKCorrelationTypeIdentifierBloodPressure      | BloodPressureRecord                      |
@@ -202,6 +204,8 @@ Example values:
 | sleep       | 'sleep.light' <br />**Notes**: recognized sleep stages and their mappings in HealthConnect / HealthKit can be found [here](sleep_map.md) <br> in Android it is also possible to retrieve an entire session, in which case the value is an array of sleep stages [ { startDate: Date, endDate: Date, stage: 'sleep.light' }, ...] |
 | calories.X     | 245.3                             |
 | heart_rate     | 66                                |
+| heart_rate.resting | 66                            |
+| heart_rate.variability | 25                        |
 | blood_glucose  | { glucose: 5.5, meal: 'breakfast', sleep: 'fully_awake', source: 'capillary_blood' }<br />**Notes**: to convert to mg/dL, [multiply by `18.01559`](http://www.convertunits.com/molarmass/Glucose)). `meal` can be: 'before_' / 'after_' / 'fasting_' (Android only) + 'meal' (iOS only) / 'breakfast' / 'dinner' / 'lunch' / 'snack' / 'unknown'. `sleep` can be (iOS only): 'fully_awake', 'before_sleep', 'on_waking', 'during_sleep'. `source` can be: 'capillary_blood' ,'interstitial_fluid', 'plasma', 'serum', 'tears', whole_blood', 'unknown'|
 | blood_pressure | { systolic: 110, diastolic: 70, body_position: 'reclining', location: 'left_wrist' } >**Notes**: body_position can be 'standing_up', 'sitting_down', 'lying_down', 'reclining' and location can be 'left_wrist', 'right_wrist', 'left_upper_arm', 'right_upper_arm'. These two are only available in Android |
 | mindfulness    | 1800 <br/>**Notes**: only available on iOS |
@@ -401,6 +405,8 @@ The following table shows what types are supported and examples of the returned 
 | sleep           | { startDate: Date, endDate: Date, value: 493, unit: 's' }  <br/>**Notes**: Android only |
 | appleExerciseTime | { startDate: Date, endDate: Date, value: 500, unit: 'min' }  <br/>**Notes**: iOS only |
 | heart_rate        | { startDate: Date, endDate: Date, value: { average: 72, min: 68, max: 82 }, unit: 'bpm' } |
+| heart_rate.resting| { startDate: Date, endDate: Date, value: { average: 72, min: 68, max: 82 }, unit: 'bpm' } |
+| heart_rate.variability| { startDate: Date, endDate: Date, value: { average: 36, min: 24, max: 48 }, unit: 'ms' } <br/>**Notes**: iOS only |
 | nutrition       | { startDate: Date, endDate: Date, value: { fat.total: 11.5, calories: 233.1 }, unit: 'nutrition' }<br />**Note:** units of measurement for nutrients are fixed according to the table at the beginning of this README |
 | blood_pressure  | { startDate: Date, endDate: Date, value: {diastolic_average: 80, systolic_average: 120, diastolic_max: 85, systolic_max: 132, diastolic_min: 74, systolic_min: 112 }, unit: 'mmHg' }  <br/>**Notes**: Android only |
 
