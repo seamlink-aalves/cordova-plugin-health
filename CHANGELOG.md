@@ -1,6 +1,13 @@
 Log of changes
 ==============
 
+### v3.2.4
+
+* added aggregated heart rate and variants
+* added blood pressure
+* updated documentation
+* bugfixes
+
 ### v3.2.3
 
 * included blood_pressure

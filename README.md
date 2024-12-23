@@ -10,13 +10,13 @@ This work is based on [cordova healthkit plugin](https://github.com/Telerik-Veri
 For bugs and improvements use the [issues tracker](https://github.com/dariosalvi78/cordova-plugin-health/issues).
 For general question or small issue, please use the [gitter channel](https://gitter.im/cordova-plugin-health/Lobby).
 
-## Warning about the new version (3+)
+## About the new version (3+)
 
-This is a complete rewrite of the Android version of the plugin to support the new [HealthConnect API](https://developer.android.com/health-and-fitness/guides/health-connect). Google Fit APIs are deprecated and [will be made obsolete in 2024](https://developer.android.com/health-and-fitness/guides/health-connect/migrate/comparison-guide#turn-down-fit-android).
+This is a complete rewrite of the Android version of the plugin to support the new [HealthConnect API](https://developer.android.com/health-and-fitness/guides/health-connect). Google Fit APIs are deprecated and [will be made obsolete in 2025](https://developer.android.com/health-and-fitness/guides/health-connect/migrate/comparison-guide#turn-down-fit-android).
 
 Google Fit is no longer supported by this plugin. If, for any masochistic reason, you want to use Google Fit, you need to use an older version of this pluign (2.1.1).
 
-Please be remindful that ***THIS IS STILL A WORK-IN-PROGRESS***. While all functionalities listed here are implemented and working, there are several data types that were supported in older versions and are not supported in this version *YET*.
+Please be remindful that this is a work-in-progress.
 If you need support for a given data type, please check if it is already implemented in iOS, then either add support in Java and send a pull request, or add an issue and I will prioritize it.
 
 ## Installation
