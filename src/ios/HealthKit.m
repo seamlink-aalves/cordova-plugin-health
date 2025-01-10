@@ -564,7 +564,7 @@ static NSString *const HKPluginKeyUUID = @"UUID";
         NSString* scheme = @"x-apple-health://";
         
         if ([[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString:scheme]]) {
-            [[UIApplication sharedApplication] openURL:[NSURL URLWithString:scheme]];
+            [[UIApplication sharedApplication] openURL:[NSURL URLWithString:scheme] options:@{} completionHandler:nil];
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsBool:(true)];
         }
         else {
