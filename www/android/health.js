@@ -35,78 +35,41 @@ module.exports = {
     if (opts.endDate && (typeof opts.endDate == 'object'))
       opts.endDate = opts.endDate.getTime();
     exec((data) => {
-      // here we use a recursive function instead of a simple loop
-      // this is to deal with additional queries required for the special case
-      // of activity with calories and/or distance
-      finalizeResult = (i) => {
-        if (i >= data.length) {
-          // completed, return results
-          onSuccess(data);
-        } else {
-          // iterate
-          // convert timestamps to date
-          if (data[i].startDate) data[i].startDate = new Date(data[i].startDate)
-          if (data[i].endDate) data[i].endDate = new Date(data[i].endDate)
+      data.map((item) => {
+        if (item.startDate) item.startDate = new Date(item.startDate);
+        if (item.endDate) item.endDate = new Date(item.endDate);
 
-          if (opts.dataType == 'sleep' && opts.sleepSession) {
-            // convert start and end dates for single stages
-            for (let stageI = 0; stageI < data[i].value.length; stageI++) {
-              data[i].value[stageI].startDate = new Date(data[i].value[stageI].startDate)
-              data[i].value[stageI].endDate = new Date(data[i].value[stageI].endDate)
-            }
-          }
-
-          if (opts.dataType == 'activity' && (opts.includeCalories || opts.includeDistance)) {
-            // we need to also fetch calories and/or distance
-
-            // helper function to get aggregated calories for that activity
-            getCals = (onDone) => {
-              this.queryAggregated({
-                startDate: data[i].startDate,
-                endDate: data[i].endDate,
-                dataType: 'calories.active'
-              }, (cals) => {
-                data[i].calories = cals.value
-                onDone()
-              }, onError)
-            }
-            // helper function to get aggregated distance for that activity
-            getDist = (onDone) => {
-              this.queryAggregated({
-                startDate: data[i].startDate,
-                endDate: data[i].endDate,
-                dataType: 'distance'
-              }, (dist) => {
-                data[i].distance = dist.value
-                onDone()
-              }, onError)
-            }
-
-            if (opts.includeCalories) {
-              // calories are needed, fetch them
-              getCals(() => {
-                // now get the distance, if needed
-                if (opts.includeDistance) {
-                  getDist(() => {
-                    finalizeResult(i + 1)
-                  })
-                } else {
-                  // no distance needed, move on
-                  finalizeResult(i + 1)
-                }
-              })
-            } else {
-              // distance only is needed
-              getDist(() => {
-                finalizeResult(i + 1)
-              })
-            }
+        if (opts.dataType == 'sleep' && opts.sleepSession) {
+          // convert start and end dates for single stages
+          item.value.map((stage) => {
+            stage.startDate = new Date(stage.startDate);
+            stage.endDate = new Date(stage.endDate);
+          });
+        }
+        if (opts.dataType == 'activity' && (opts.includeCalories || opts.includeDistance)) {
+          // we need to also fetch calories and/or distance
+          if (opts.includeCalories) {
+            // calories are needed, fetch them
+            this.queryAggregated({
+              startDate: item.startDate,
+              endDate: item.endDate,
+              dataType: 'calories.active'
+            }, (cals) => {
+              item.calories = cals.value
+            }, onError);
           } else {
-            finalizeResult(i + 1)
+            // distance only is needed
+            this.queryAggregated({
+              startDate: item.startDate,
+              endDate: item.endDate,
+              dataType: 'distance'
+            }, (dist) => {
+              item.distance = dist.value
+            }, onError);
           }
         }
-      }
-      finalizeResult(0);
+      });
+      onSuccess(data);
     }, onError, "health", "query", [opts])
   },
 
