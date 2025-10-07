@@ -34,8 +34,19 @@ module.exports = {
       opts.startDate = opts.startDate.getTime()
     if (opts.endDate && (typeof opts.endDate == 'object'))
       opts.endDate = opts.endDate.getTime();
+    const subQuery = (param, startDate, endDate) => {
+      return new Promise((resolve, reject) => {
+        this.queryAggregated({
+          startDate: startDate,
+          endDate: endDate,
+          dataType: param
+        },
+          (result) => resolve(result.value),
+          (error) => reject(error));
+      });
+    }
     exec((data) => {
-      data.map((item) => {
+      data.map(async (item) => {
         if (item.startDate) item.startDate = new Date(item.startDate);
         if (item.endDate) item.endDate = new Date(item.endDate);
 
@@ -50,22 +61,18 @@ module.exports = {
           // we need to also fetch calories and/or distance
           if (opts.includeCalories) {
             // calories are needed, fetch them
-            this.queryAggregated({
-              startDate: item.startDate,
-              endDate: item.endDate,
-              dataType: 'calories.active'
-            }, (cals) => {
-              item.calories = cals.value
-            }, onError);
+            try {
+              item.calories = await subQuery('calories.active', item.startDate, item.endDate)
+            } catch (error) {
+              onError(error);
+            }
           } else {
             // distance only is needed
-            this.queryAggregated({
-              startDate: item.startDate,
-              endDate: item.endDate,
-              dataType: 'distance'
-            }, (dist) => {
-              item.distance = dist.value
-            }, onError);
+            try {
+              item.distance = await subQuery('distance', item.startDate, item.endDate)
+            } catch (error) {
+              onError(error);
+            }
           }
         }
       });
